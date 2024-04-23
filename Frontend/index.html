@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parking System Login</title>
+  <link rel="stylesheet" href="./style.css">
+  <script>
+    function validateForm() {
+      var username = document.getElementById('username').value;
+      var password = document.getElementById('password').value;
+
+      // Check if username and password are not empty
+      if (username.trim() == '' || password.trim() == '') {
+        alert('Username and password are required.');
+        return false;
+      }
+
+      // Check if username and password match (dummy check)
+      if (username !== 'admin' || password !== 'admin') {
+        alert('Invalid username or password.');
+        document.getElementById('username').value="";
+        document.getElementById('password').value="";
+        return false;
+      }
+
+      // If username and password match, show success message and redirect
+      alert('Login successful!');
+      document.getElementById('username').value="";
+      document.getElementById('password').value="";
+      // Redirect to a new page (replace 'newpage.html' with your desired page)
+      window.location.href = 'main.html';
+      return false; // Prevent form submission
+    }
+  </script>
+</head>
+<body>
+    <div class="MainContainer">
+        <div>
+            <h1>Parking System Login</h1>
+        </div>
+        <div>
+            <div class="login-container">
+                <form action="login.php" method="POST" onsubmit="return validateForm()">
+                  <div class="input-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required>
+                  </div>
+                  <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                  </div>
+                  <button type="submit">Login</button>
+                </form>
+              </div>
+        </div>
+    </div>
+    
+</body>
+</html>

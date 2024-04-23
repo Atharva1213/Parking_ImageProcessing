@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Parking System Dashboard</title>
+    <link rel="stylesheet" href="./main.css" />
+    <script>
+      var selectedSlot = null;
+      var bookedSlots = [];
+      var cureentFile;
+      var foundBooking;
+      var bookedSlotsData = []; // Array to store booked slot data
+
+      function radioChange(radio) {
+        resetvalue();
+        var checkInContent = document.getElementById("checkInContent");
+        var checkOutContent = document.getElementById("checkOutContent");
+        if (radio.value === "Check In") {
+          checkInContent.style.display = "block";
+          checkOutContent.style.display = "none";
+          document.getElementById("showContent").style.display = "block";
+        } else if (radio.value === "Check Out") {
+          checkInContent.style.display = "none";
+          checkOutContent.style.display = "block";
+          document.getElementById("showContent").style.display = "block";
+        }
+      }
+
+      function generateDailyReport() {
+        var reportTable =
+          "<h2>Daily Report</h2><table><tr><th>Sr</th><th>Slot Number</th><th>Time</th><th>Car Number</th></tr>";
+
+        for (var i = 0; i < bookedSlotsData.length; i++) {
+          var booking = bookedSlotsData[i];
+          var time = booking.time.toLocaleTimeString();
+          var sr = i + 1;
+          reportTable +=
+            "<tr><td>" +
+            sr +
+            "</td><td>" +
+            booking.slot +
+            "</td><td>" +
+            time +
+            "</td><td>" +
+            booking.carNumber +
+            "</td></tr>";
+        }
+
+        reportTable += "</table>";
+        document.getElementById("ReportModalContent").innerHTML = reportTable;
+      }
+
+      function generatePaymentReport() {
+        var reportTable =
+          "<h2>Payment Report</h2><table><tr><th>Sr</th><th>Slot Number</th><th>Time</th><th>Car Number</th></tr>";
+
+        // Filter bookedSlotsData to include only bookings with paymentMode set to "paid"
+        var paidBookings = bookedSlotsData.filter(function (booking) {
+          return booking.paymentMode === "paid" && booking.mode === true;
+        });
+
+        for (var i = 0; i < paidBookings.length; i++) {
+          var booking = paidBookings[i];
+          var time = booking.time.toLocaleTimeString(); // Get only time part
+          var sr = i + 1; // Serial number
+          reportTable +=
+            "<tr><td>" +
+            sr +
+            "</td><td>" +
+            booking.slot +
+            "</td><td>" +
+            time +
+            "</td><td>" +
+            booking.carNumber +
+            "</td></tr>";
+        }
+
+        reportTable += "</table>";
+        document.getElementById("ReportModalContent").innerHTML = reportTable;
+      }
+
+      function showImage(input) {
+        var file = input.files[0];
+        cureentFile = file.name;
+        var reader = new FileReader();
+        reader.onload = function (e) {
+          var image = document.createElement("img");
+          image.src = e.target.result;
+          image.style.width = "100%"; // Set width to 100%
+          image.style.height = "100%"; // Set height to 100%
+          var container = document.getElementById("imageContainer");
+          container.innerHTML = "";
+          container.appendChild(image);
+
+          // Show the "Check Availability" button
+          var checkAvailabilityButton = document.getElementById(
+            "checkAvailabilityButton"
+          );
+          checkAvailabilityButton.style.display = "block";
+          document.getElementById("checkButtonAfter").style.display = "block";
+        };
+
+        reader.readAsDataURL(file);
+      }
+
+      function openModal() {
+        var modal = document.getElementById("myModal");
+        modal.style.display = "block";
+        // Call showAvailability to display parking slots
+        showAvailability();
+      }
+
+      function showAvailability() {
+        var parkingSlotsContainer = document.querySelector(".parking-slots");
+        parkingSlotsContainer.innerHTML = ""; // Clear previous slots
+
+        for (var lane = 1; lane <= 5; lane++) {
+          var laneDiv = document.createElement("div");
+          laneDiv.classList.add("parking-lane");
+          laneDiv.textContent = "Lane " + lane;
+
+          for (var slot = 1; slot <= 12; slot++) {
+            var slotNumber = (lane - 1) * 12 + slot;
+            var slotDiv = document.createElement("div");
+            slotDiv.classList.add("parking-slot");
+            if (bookedSlots.includes(slotNumber)) {
+              slotDiv.classList.add("booked");
+            } else {
+              slotDiv.textContent = slotNumber;
+              slotDiv.addEventListener("click", function () {
+                if (!this.classList.contains("booked")) {
+                  if (selectedSlot !== null) {
+                    selectedSlot.classList.remove("selected");
+                  }
+                  this.classList.add("selected");
+                  this.classList.add("booked");
+                  selectedSlot = this;
+                  var allocateSlotButton =
+                    document.getElementById("allocateSlotButton");
+                  allocateSlotButton.style.display = "block";
+                }
+              });
+            }
+            laneDiv.appendChild(slotDiv);
+          }
+
+          parkingSlotsContainer.appendChild(laneDiv);
+        }
+      }
+
+      function resetInput() {
+        // Clear input file field
+        var inputFile = document.querySelector("input[type=file]");
+        inputFile.value = "";
+
+        // Clear image container
+        var imageContainer = document.getElementById("imageContainer");
+        imageContainer.innerHTML = "";
+
+        // Hide check availability button
+        var checkAvailabilityButton = document.getElementById(
+          "checkAvailabilityButton"
+        );
+        checkAvailabilityButton.style.display = "none";
+
+        var allocateSlotButton = document.getElementById("allocateSlotButton");
+        allocateSlotButton.style.display = "none";
+
+        var radioButtons = document.getElementsByName("shape");
+        for (var i = 0; i < radioButtons.length; i++) {
+          radioButtons[i].checked = false;
+        }
+
+        var radioButtons1 = document.getElementsByName("paymentOption");
+        for (var i = 0; i < radioButtons1.length; i++) {
+          radioButtons1[i].checked = false;
+        }
+
+        document.getElementById("normal").style.display = "block";
+        document.getElementById("Notnormal").style.display = "none";
+        document.getElementById("Notnormal").innerHTML = "";
+
+        cureentFile = "";
+
+        document.getElementById("showContent").style.display = "none";
+
+        document.getElementById("checkInContent").style.display = "none";
+        document.getElementById("checkOutContent").style.display = "none";
+
+        // Hide check availability button
+        var checkButtonAfter = document.getElementById("checkButtonAfter");
+        checkButtonAfter.style.display = "none";
+
+        var paymentModalContent = document.querySelector(
+          "#PaymentModal .CheckCondition"
+        );
+        paymentModalContent.innerHTML = "";
+      }
+
+      function resetvalue() {
+        document.getElementById("normal").style.display = "block";
+        document.getElementById("Notnormal").style.display = "none";
+        document.getElementById("Notnormal").innerHTML = "";
+        cureentFile = "";
+        var radioButtons1 = document.getElementsByName("paymentOption");
+        for (var i = 0; i < radioButtons1.length; i++) {
+          radioButtons1[i].checked = false;
+        }
+        document.getElementById("showContent").style.display = "none";
+
+        document.getElementById("checkInContent").style.display = "none";
+        document.getElementById("checkOutContent").style.display = "none";
+        var inputFile = document.querySelector("input[type=file]");
+        inputFile.value = "";
+
+        var checkButtonAfter = document.getElementById("checkButtonAfter");
+        checkButtonAfter.style.display = "none";
+        // Clear image container
+        var imageContainer = document.getElementById("imageContainer");
+        imageContainer.innerHTML = "";
+
+        // Hide check availability button
+        var checkAvailabilityButton = document.getElementById(
+          "checkAvailabilityButton"
+        );
+        checkAvailabilityButton.style.display = "none";
+
+        var allocateSlotButton = document.getElementById("allocateSlotButton");
+        allocateSlotButton.style.display = "none";
+      }
+
+      function closeModalReport() {
+        generateDailyReport();
+        var modal = document.getElementById("ReportModal");
+        modal.style.display = "none";
+      }
+
+      function closeModal() {
+        var modal = document.getElementById("myModal");
+        modal.style.display = "none";
+        resetInput(); // Call resetInput function
+      }
+
+      function allocateSlot() {
+        if (selectedSlot !== null) {
+          var currentTime = new Date(); // Get current time
+          var carNumber = cureentFile.split(".").slice(0, -1).join(".");
+          var slotNumber = parseInt(selectedSlot.textContent);
+          var bookingData = {
+            slot: slotNumber,
+            time: currentTime,
+            carNumber: carNumber,
+            mode: false,
+          };
+          bookedSlots.push(slotNumber);
+          bookedSlotsData.push(bookingData);
+          selectedSlot.classList.remove("selected");
+          selectedSlot.classList.add("booked");
+          alert(
+            "Slot allocated: " + selectedSlot.textContent + " - > " + carNumber
+          );
+          closeModal();
+        } else {
+          alert("Please select a slot first.");
+        }
+      }
+
+      function redirectToIndex() {
+        window.location.href = "index.html";
+      }
+
+      function openReportModal(type) {
+        type === "d" ? generateDailyReport() : generatePaymentReport();
+        var modal = document.getElementById("ReportModal");
+        modal.style.display = "block";
+      }
+
+      function PaymentReport() {
+        var carNumber = cureentFile.split(".").slice(0, -1).join(".");
+        foundBooking = bookedSlotsData.find(function (booking) {
+          return booking.carNumber === carNumber;
+        });
+        if (foundBooking) {
+          PaymentopenModal();
+        } else {
+          alert("No booking found for car number: " + carNumber);
+        }
+      }
+
+      function PaymentopenModal() {
+        var modal = document.getElementById("PaymentModal");
+        modal.style.display = "block";
+      }
+
+      function generateBill() {
+        var selectedOption = document.querySelector(
+          'input[name="paymentOption"]:checked'
+        ).value;
+        var billContent = "<h2>Bill</h2>";
+        if (selectedOption === "free") {
+          billContent += "<p>No payment required. This is a free option.</p>";
+        } else if (selectedOption === "paid") {
+          var billAmount = 30;
+          billContent += "<p>Total amount due: $" + billAmount + "</p>";
+        }
+
+        var carNumber = cureentFile.split(".").slice(0, -1).join(".");
+        var foundBooking = bookedSlotsData.find(function (booking) {
+          return booking.carNumber === carNumber;
+        });
+
+        if (foundBooking) {
+          foundBooking.paymentMode = selectedOption;
+          foundBooking.mode = true;
+          bookedSlots.splice(foundBooking.carNumber, 1);
+        }
+
+        document.getElementById("normal").style.display = "none";
+        document.getElementById("Notnormal").style.display = "block";
+        document.getElementById("Notnormal").innerHTML = billContent;
+        setTimeout(() => {
+          alert("Thank you! Visit again.");
+          paymentclose();
+        }, 5000);
+      }
+
+      function paymentclose() {
+        var modal = document.getElementById("PaymentModal");
+        modal.style.display = "none";
+        resetInput();
+      }
+    </script>
+  </head>
+  <body>
+    <div class="MainContainer">
+      <div>
+        <h1>Parking System Dashboard</h1>
+      </div>
+      <div class="MainProfile">
+        <button class="actionbutton" onclick="redirectToIndex()">Logout</button>
+        <button class="actionbutton" onclick="openReportModal('d')">
+          Daily Report
+        </button>
+        <button class="actionbutton" onclick="openReportModal('p')">
+          Payment Report
+        </button>
+      </div>
+      <div class="MainController">
+        <div class="optiondiv">
+          <input
+            type="radio"
+            name="shape"
+            value="Check In"
+            onclick="radioChange(this)"
+          />
+          <span>Check In</span>
+        </div>
+        <div class="optiondiv">
+          <input
+            type="radio"
+            name="shape"
+            value="Check Out"
+            onclick="radioChange(this)"
+          />
+          <span>Check Out</span>
+        </div>
+      </div>
+      <div id="showContent" style="display: none">
+        <div class="CheckOne">
+          <label>Please Enter Image</label>
+          <input
+            type="file"
+            name="CarImage"
+            id="carnumber"
+            accept=".jpg, .png"
+            onchange="showImage(this)"
+          />
+        </div>
+        <div id="imageContainer" class="imageContainer"></div>
+        <div id="checkInContent" class="CheckInContent" style="display: none">
+          <div class="CheckTwo">
+            <!-- Initially hidden button -->
+            <button
+              id="checkAvailabilityButton"
+              class="actionbutton"
+              style="display: none; width: 250px"
+              onclick="openModal()"
+            >
+              Check Availability
+            </button>
+          </div>
+        </div>
+        <div id="checkOutContent" style="display: none">
+          <div class="CheckTwo">
+            <!-- Initially hidden button -->
+            <button
+              id="checkButtonAfter"
+              class="actionbutton"
+              style="display: none; width: 250px"
+              onclick="PaymentReport()"
+            >
+              Get Information
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="myModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <div class="CheckCondition">
+          <h2>Check Availability</h2>
+          <div class="parking-slots">
+            <!-- Parking slots will be dynamically generated here -->
+          </div>
+          <div style="margin: auto">
+            <button
+              id="allocateSlotButton"
+              class="actionbutton"
+              style="display: none"
+              onclick="allocateSlot()"
+            >
+              Allocate Slot
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="ReportModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="closeModalReport()">&times;</span>
+        <div
+          class="CheckCondition"
+          id="ReportModalContent"
+          style="overflow: auto"
+        >
+          <!-- Report content will be dynamically generated here -->
+        </div>
+      </div>
+    </div>
+   <div id="PaymentModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="paymentclose()">&times;</span>
+    <div id="normal">
+        <div class="play">
+            <h2>Payment Options</h2>
+            <div style="display:flex;gap:1.5vh;justify-content:center;">
+              <div>
+                <input type="radio" name="paymentOption" value="free" id="freeOption" checked />
+                <label for="freeOption">Free</label>
+              </div>
+              <div>
+                <input type="radio" name="paymentOption" value="paid" id="paidOption" />
+                <label for="paidOption">Paid</label>
+              </div>
+            </div>
+            <div style="margin: auto;">
+              <button id="generateBillButton" class="actionbutton" onclick="generateBill()">Generate Bill</button>
+            </div>
+        </div>
+     
+    </div>
+    <div id="Notnormal" style="display:none;display:flex;justify-content:center;"></div>
+  </div>
+</div>
+
+      
+  </body>
+</html>
